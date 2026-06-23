@@ -415,6 +415,31 @@ textarea {
   background: var(--teal-dark);
 }
 
+.secondary-btn,
+.danger-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 800;
+  background: #fff;
+}
+
+.secondary-btn {
+  border: 1px solid var(--teal);
+  color: var(--teal);
+}
+
+.danger-btn {
+  border: 1px solid #e1b3ad;
+  color: var(--red);
+}
+
+.setting-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -451,8 +476,20 @@ th {
 
 .capacity-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.capacity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.capacity-head strong {
+  margin-bottom: 0;
 }
 
 @media (max-width: 1040px) {
@@ -499,7 +536,8 @@ th {
   .dashboard-grid,
   .form-grid,
   .form,
-  .capacity-grid {
+  .capacity-grid,
+  .capacity-fields {
     grid-template-columns: 1fr;
   }
 

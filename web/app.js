@@ -115,6 +115,19 @@ function addMonths(date, months) {
   return result;
 }
 
+function makeSlotTime(start, end) {
+  return `${start}-${end}`;
+}
+
+function splitSlotTime(time) {
+  const [start = "09:00", end = "10:00"] = time.split("-");
+  return { start, end };
+}
+
+function sortSlots() {
+  state.slots.sort((a, b) => a.time.localeCompare(b.time));
+}
+
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -223,6 +236,10 @@ function renderQueue() {
 function renderBookingSlots() {
   const select = document.querySelector("#bookingSlot");
   const bookingDate = document.querySelector("#bookingDate").value || state.selectedDate;
+  if (!state.slots.length) {
+    select.innerHTML = `<option disabled selected>尚未建立可預約時段</option>`;
+    return;
+  }
   select.innerHTML = state.slots.map((slot) => {
     const usage = getSlotUsage(slot, bookingDate);
     return `<option value="${slot.time}" ${usage.tone === "full" ? "disabled" : ""}>${slot.time}｜${usage.label}｜${usage.online}/${usage.totalCapacity}</option>`;
@@ -295,9 +312,20 @@ function renderReminders() {
 function renderCapacityForm() {
   const form = document.querySelector("#capacityForm");
   form.innerHTML = state.slots.map((slot, index) => `
-    <div class="capacity-item">
-      <strong>${slot.time}</strong>
+    <div class="capacity-item" data-index="${index}" data-original-time="${slot.time}">
+      <div class="capacity-head">
+        <strong>${slot.time}</strong>
+        <button class="danger-btn" type="button" data-action="delete-slot" data-index="${index}">刪除</button>
+      </div>
       <div class="capacity-fields">
+        <label>
+          <span>開始時間</span>
+          <input type="time" value="${splitSlotTime(slot.time).start}" data-index="${index}" data-field="startTime">
+        </label>
+        <label>
+          <span>結束時間</span>
+          <input type="time" value="${splitSlotTime(slot.time).end}" data-index="${index}" data-field="endTime">
+        </label>
         <label>
           <span>線上上限</span>
           <input type="number" min="0" value="${slot.onlineCapacity}" data-index="${index}" data-field="onlineCapacity">
@@ -308,7 +336,7 @@ function renderCapacityForm() {
         </label>
       </div>
     </div>
-  `).join("");
+  `).join("") || `<div class="capacity-item"><strong>尚未建立時段</strong><p>請先按「新增時段」，建立廠家的可預約時段。</p></div>`;
 }
 
 function bindEvents() {
@@ -366,11 +394,76 @@ function bindEvents() {
 
   document.querySelector("#vehicleSearch").addEventListener("input", renderVehicleTable);
 
-  document.querySelector("#saveCapacity").addEventListener("click", () => {
-    document.querySelectorAll("#capacityForm input").forEach((input) => {
-      const slot = state.slots[Number(input.dataset.index)];
-      slot[input.dataset.field] = Math.max(Number(input.value), 0);
+  document.querySelector("#addSlot").addEventListener("click", () => {
+    const defaultStart = state.slots.at(-1) ? splitSlotTime(state.slots.at(-1).time).end : "09:00";
+    const defaultEnd = defaultStart < "23:00" ? `${String(Number(defaultStart.slice(0, 2)) + 1).padStart(2, "0")}:${defaultStart.slice(3)}` : "23:59";
+    state.slots.push({
+      time: makeSlotTime(defaultStart, defaultEnd),
+      onlineCapacity: 6,
+      walkInReserve: 2
     });
+    sortSlots();
+    saveState();
+    render();
+  });
+
+  document.querySelector("#capacityForm").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-action='delete-slot']");
+    if (!button) return;
+    const index = Number(button.dataset.index);
+    const slot = state.slots[index];
+    const relatedBookings = state.bookings.filter((booking) => booking.slot === slot.time && !["已取消"].includes(booking.status));
+    if (relatedBookings.length && !confirm(`${slot.time} 已有 ${relatedBookings.length} 筆預約或紀錄，確定要刪除這個時段嗎？`)) {
+      return;
+    }
+    state.slots.splice(index, 1);
+    saveState();
+    render();
+  });
+
+  document.querySelector("#saveCapacity").addEventListener("click", () => {
+    const nextSlots = [];
+    const timeChanges = [];
+    const items = Array.from(document.querySelectorAll("#capacityForm .capacity-item[data-index]"));
+
+    for (const item of items) {
+      const index = Number(item.dataset.index);
+      const originalTime = item.dataset.originalTime;
+      const start = item.querySelector("[data-field='startTime']").value;
+      const end = item.querySelector("[data-field='endTime']").value;
+      const onlineCapacity = Math.max(Number(item.querySelector("[data-field='onlineCapacity']").value), 0);
+      const walkInReserve = Math.max(Number(item.querySelector("[data-field='walkInReserve']").value), 0);
+
+      if (!start || !end || start >= end) {
+        alert("請確認每個時段都有正確的開始與結束時間，且結束時間要晚於開始時間。");
+        return;
+      }
+
+      const nextTime = makeSlotTime(start, end);
+      nextSlots.push({ time: nextTime, onlineCapacity, walkInReserve });
+
+      if (state.slots[index] && originalTime !== nextTime) {
+        timeChanges.push({ from: originalTime, to: nextTime });
+      }
+    }
+
+    const duplicateTimes = nextSlots
+      .map((slot) => slot.time)
+      .filter((time, index, all) => all.indexOf(time) !== index);
+
+    if (duplicateTimes.length) {
+      alert("時段不可重複，請調整後再儲存。");
+      return;
+    }
+
+    timeChanges.forEach((change) => {
+      state.bookings.forEach((booking) => {
+        if (booking.slot === change.from) booking.slot = change.to;
+      });
+    });
+
+    state.slots = nextSlots;
+    sortSlots();
     saveState();
     render();
   });
