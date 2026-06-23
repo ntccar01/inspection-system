@@ -1,6 +1,11 @@
 const STORAGE_KEY = "inspection-yard-mvp-state-v1";
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const defaultState = {
+  selectedDate: todayISO(),
   slots: [
     { time: "09:00-10:00", onlineCapacity: 6, walkInReserve: 2 },
     { time: "10:00-11:00", onlineCapacity: 6, walkInReserve: 2 },
@@ -17,6 +22,7 @@ const defaultState = {
       phone: "0912-345-678",
       type: "自用小客車",
       manufactured: "2014-05",
+      bookingDate: todayISO(),
       slot: "09:00-10:00",
       status: "已報到",
       consent: true,
@@ -29,6 +35,7 @@ const defaultState = {
       phone: "0988-222-123",
       type: "自用小客車",
       manufactured: "2019-11",
+      bookingDate: todayISO(),
       slot: "10:00-11:00",
       status: "等待檢驗",
       consent: true,
@@ -41,6 +48,7 @@ const defaultState = {
       phone: "0975-111-888",
       type: "自用小貨車",
       manufactured: "2012-03",
+      bookingDate: todayISO(),
       slot: "10:00-11:00",
       status: "檢驗中",
       consent: true,
@@ -53,6 +61,7 @@ const defaultState = {
       phone: "0933-876-655",
       type: "自用小客車",
       manufactured: "2020-08",
+      bookingDate: todayISO(),
       slot: "14:30-15:30",
       status: "已預約",
       consent: false,
@@ -68,7 +77,14 @@ function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return structuredClone(defaultState);
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    parsed.selectedDate = parsed.selectedDate || todayISO();
+    parsed.bookings = (parsed.bookings || []).map((booking) => ({
+      ...booking,
+      bookingDate: booking.bookingDate || todayISO()
+    }));
+    parsed.slots = parsed.slots || structuredClone(defaultState.slots);
+    return parsed;
   } catch {
     return structuredClone(defaultState);
   }
@@ -109,8 +125,12 @@ function getNextInspectionDate(booking) {
   return formatDate(addMonths(new Date(), rule.months));
 }
 
-function getSlotUsage(slot) {
-  const active = state.bookings.filter((booking) => booking.slot === slot.time && !["已取消", "未到"].includes(booking.status));
+function getSelectedDateBookings() {
+  return state.bookings.filter((booking) => booking.bookingDate === state.selectedDate);
+}
+
+function getSlotUsage(slot, date = state.selectedDate) {
+  const active = state.bookings.filter((booking) => booking.bookingDate === date && booking.slot === slot.time && !["已取消", "未到"].includes(booking.status));
   const online = active.length;
   const totalCapacity = slot.onlineCapacity + slot.walkInReserve;
   const percent = Math.min(Math.round((online / totalCapacity) * 100), 100);
@@ -142,21 +162,24 @@ function render() {
 }
 
 function renderToday() {
-  const now = new Date();
-  document.querySelector("#todayText").textContent = now.toLocaleDateString("zh-TW", {
+  const dateInput = document.querySelector("#operatingDate");
+  dateInput.value = state.selectedDate;
+  const selected = new Date(`${state.selectedDate}T00:00:00`);
+  document.querySelector("#todayText").textContent = selected.toLocaleDateString("zh-TW", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     weekday: "long"
   });
-  const waiting = state.bookings.filter((booking) => ["已報到", "等待檢驗"].includes(booking.status)).length;
+  const waiting = getSelectedDateBookings().filter((booking) => ["已報到", "等待檢驗"].includes(booking.status)).length;
   document.querySelector("#currentLoadText").textContent = `現場約等待 ${waiting * 12} 分鐘`;
 }
 
 function renderMetrics() {
-  const bookings = state.bookings.filter((booking) => !["已取消"].includes(booking.status));
-  const checkedIn = state.bookings.filter((booking) => !["已預約", "已取消", "未到"].includes(booking.status));
-  const waiting = state.bookings.filter((booking) => ["已報到", "等待檢驗"].includes(booking.status));
+  const selectedBookings = getSelectedDateBookings();
+  const bookings = selectedBookings.filter((booking) => !["已取消"].includes(booking.status));
+  const checkedIn = selectedBookings.filter((booking) => !["已預約", "已取消", "未到"].includes(booking.status));
+  const waiting = selectedBookings.filter((booking) => ["已報到", "等待檢驗"].includes(booking.status));
   document.querySelector("#metricBookings").textContent = bookings.length;
   document.querySelector("#metricCheckedIn").textContent = checkedIn.length;
   document.querySelector("#metricWaiting").textContent = waiting.length;
@@ -182,14 +205,14 @@ function renderSlots() {
 
 function renderQueue() {
   const list = document.querySelector("#queueList");
-  const active = state.bookings.filter((booking) => !["已取消", "已離場"].includes(booking.status));
+  const active = getSelectedDateBookings().filter((booking) => !["已取消", "已離場"].includes(booking.status));
   list.innerHTML = active.map((booking) => {
     const options = statuses.map((status) => `<option ${status === booking.status ? "selected" : ""}>${status}</option>`).join("");
     return `
       <article class="queue-item">
         <div>
           <strong>${booking.plate}｜${booking.owner}</strong>
-          <small>${booking.slot}｜${booking.type}｜${booking.phone}</small>
+          <small>${booking.bookingDate}｜${booking.slot}｜${booking.type}｜${booking.phone}</small>
         </div>
         <select class="status-select" data-id="${booking.id}">${options}</select>
       </article>
@@ -199,8 +222,9 @@ function renderQueue() {
 
 function renderBookingSlots() {
   const select = document.querySelector("#bookingSlot");
+  const bookingDate = document.querySelector("#bookingDate").value || state.selectedDate;
   select.innerHTML = state.slots.map((slot) => {
-    const usage = getSlotUsage(slot);
+    const usage = getSlotUsage(slot, bookingDate);
     return `<option value="${slot.time}" ${usage.tone === "full" ? "disabled" : ""}>${slot.time}｜${usage.label}｜${usage.online}/${usage.totalCapacity}</option>`;
   }).join("");
 }
@@ -208,7 +232,7 @@ function renderBookingSlots() {
 function renderPublicBoard() {
   const board = document.querySelector("#publicBoard");
   board.innerHTML = state.slots.map((slot) => {
-    const usage = getSlotUsage(slot);
+    const usage = getSlotUsage(slot, state.selectedDate);
     const suggestion = usage.tone === "full" ? "建議改選其他時段" : usage.tone === "busy" ? "可能需要等待" : "適合預約或前往";
     return `
       <article class="public-item">
@@ -233,6 +257,7 @@ function renderVehicleTable() {
           <td><strong>${booking.plate}</strong></td>
           <td>${booking.owner}</td>
           <td>${booking.phone}</td>
+          <td>${booking.bookingDate}</td>
           <td>${rule.age} 年</td>
           <td>${rule.text}</td>
           <td>${getNextInspectionDate(booking)}</td>
@@ -240,7 +265,7 @@ function renderVehicleTable() {
         </tr>
       `;
     }).join("");
-  document.querySelector("#vehicleTable").innerHTML = rows || `<tr><td colspan="7">找不到符合資料</td></tr>`;
+  document.querySelector("#vehicleTable").innerHTML = rows || `<tr><td colspan="8">找不到符合資料</td></tr>`;
 }
 
 function getReminderBookings() {
@@ -296,6 +321,15 @@ function bindEvents() {
     });
   });
 
+  document.querySelector("#operatingDate").addEventListener("change", (event) => {
+    state.selectedDate = event.target.value || todayISO();
+    document.querySelector("#bookingDate").value = state.selectedDate;
+    saveState();
+    render();
+  });
+
+  document.querySelector("#bookingDate").addEventListener("change", renderBookingSlots);
+
   document.querySelector("#bookingForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -307,12 +341,14 @@ function bindEvents() {
       phone: form.get("phone").trim(),
       type: form.get("type"),
       manufactured: form.get("manufactured"),
+      bookingDate: form.get("bookingDate"),
       slot: form.get("slot"),
       status: "已預約",
       consent: form.get("consent") === "on",
       note: form.get("note").trim()
     });
     event.currentTarget.reset();
+    document.querySelector("#bookingDate").value = state.selectedDate;
     saveState();
     render();
     document.querySelector('[data-view="dashboard"]').click();
@@ -341,4 +377,5 @@ function bindEvents() {
 }
 
 bindEvents();
+document.querySelector("#bookingDate").value = state.selectedDate;
 render();

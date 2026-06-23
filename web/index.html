@@ -36,6 +36,10 @@
           <h1>智慧預約與現場流場管理</h1>
         </div>
         <div class="today-box">
+          <label class="date-switch">
+            <span>營業日期</span>
+            <input id="operatingDate" type="date">
+          </label>
           <span id="todayText"></span>
           <strong id="currentLoadText"></strong>
         </div>
@@ -124,6 +128,10 @@
                 <input name="manufactured" type="month" required>
               </label>
               <label>
+                <span>預約日期</span>
+                <input name="bookingDate" id="bookingDate" type="date" required>
+              </label>
+              <label>
                 <span>預約時段</span>
                 <select name="slot" id="bookingSlot"></select>
               </label>
@@ -167,6 +175,7 @@
                   <th>車牌</th>
                   <th>車主</th>
                   <th>手機</th>
+                  <th>預約日期</th>
                   <th>車齡</th>
                   <th>檢驗週期</th>
                   <th>下次建議日</th>
