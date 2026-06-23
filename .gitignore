@@ -15,9 +15,19 @@ temp/
 # Local environment
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+service-account*.json
+*-service-account.json
+google-credentials*.json
+firebase-adminsdk*.json
 
 # Dependencies and build output
 node_modules/
 dist/
 build/
-
