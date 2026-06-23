@@ -216,21 +216,32 @@ function renderSlots() {
   });
 }
 
+function renderWorkorderCard(booking, compact = false) {
+  const options = statuses.map((status) => `<option ${status === booking.status ? "selected" : ""}>${status}</option>`).join("");
+  return `
+    <article class="queue-item ${compact ? "compact-item" : ""}">
+      <div>
+        <strong>${booking.plate}｜${booking.owner}</strong>
+        <small>${booking.bookingDate}｜${booking.slot}｜${booking.type}｜${booking.phone}</small>
+      </div>
+      <select class="status-select" data-id="${booking.id}">${options}</select>
+    </article>
+  `;
+}
+
+function getActiveWorkorders() {
+  return getSelectedDateBookings().filter((booking) => !["已取消", "已離場"].includes(booking.status));
+}
+
 function renderQueue() {
-  const list = document.querySelector("#queueList");
-  const active = getSelectedDateBookings().filter((booking) => !["已取消", "已離場"].includes(booking.status));
-  list.innerHTML = active.map((booking) => {
-    const options = statuses.map((status) => `<option ${status === booking.status ? "selected" : ""}>${status}</option>`).join("");
-    return `
-      <article class="queue-item">
-        <div>
-          <strong>${booking.plate}｜${booking.owner}</strong>
-          <small>${booking.bookingDate}｜${booking.slot}｜${booking.type}｜${booking.phone}</small>
-        </div>
-        <select class="status-select" data-id="${booking.id}">${options}</select>
-      </article>
-    `;
-  }).join("");
+  const dashboardList = document.querySelector("#dashboardQueueList");
+  const workorderList = document.querySelector("#workorderList");
+  const active = getActiveWorkorders();
+  const empty = `<article class="queue-item"><div><strong>目前沒有當日工單</strong><small>新增該日期預約後會出現在這裡。</small></div></article>`;
+
+  dashboardList.innerHTML = active.slice(0, 4).map((booking) => renderWorkorderCard(booking, true)).join("") || empty;
+  workorderList.innerHTML = active.map((booking) => renderWorkorderCard(booking)).join("") || empty;
+  document.querySelector("#workorderDateText").textContent = state.selectedDate;
 }
 
 function renderBookingSlots() {
@@ -265,8 +276,17 @@ function renderPublicBoard() {
 
 function renderVehicleTable() {
   const keyword = document.querySelector("#vehicleSearch").value.trim().toLowerCase();
-  const rows = state.bookings
+  const vehicles = new Map();
+  state.bookings.forEach((booking) => {
+    const current = vehicles.get(booking.plate);
+    if (!current || booking.bookingDate > current.bookingDate) {
+      vehicles.set(booking.plate, booking);
+    }
+  });
+
+  const rows = Array.from(vehicles.values())
     .filter((booking) => `${booking.plate} ${booking.owner} ${booking.phone}`.toLowerCase().includes(keyword))
+    .sort((a, b) => a.plate.localeCompare(b.plate))
     .map((booking) => {
       const rule = getInspectionRule(booking.manufactured);
       return `
@@ -278,7 +298,7 @@ function renderVehicleTable() {
           <td>${rule.age} 年</td>
           <td>${rule.text}</td>
           <td>${getNextInspectionDate(booking)}</td>
-          <td>${booking.status}</td>
+          <td>${booking.consent ? "同意" : "未同意"}</td>
         </tr>
       `;
     }).join("");
@@ -382,7 +402,7 @@ function bindEvents() {
     document.querySelector('[data-view="dashboard"]').click();
   });
 
-  document.querySelector("#queueList").addEventListener("change", (event) => {
+  document.addEventListener("change", (event) => {
     if (!event.target.matches(".status-select")) return;
     const booking = state.bookings.find((item) => item.id === event.target.dataset.id);
     if (booking) {

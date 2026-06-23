@@ -20,6 +20,7 @@
         <button class="nav-tab active" type="button" data-view="dashboard">今日看板</button>
         <button class="nav-tab" type="button" data-view="booking">車主預約</button>
         <button class="nav-tab" type="button" data-view="vehicles">車輛資料</button>
+        <button class="nav-tab" type="button" data-view="workorders">現場工單</button>
         <button class="nav-tab" type="button" data-view="reminders">提醒名單</button>
         <button class="nav-tab" type="button" data-view="settings">容量設定</button>
       </nav>
@@ -87,7 +88,7 @@
                 <p>用車牌快速更新報到、檢驗中、完成或覆驗。</p>
               </div>
             </div>
-            <div class="queue-list" id="queueList"></div>
+            <div class="queue-list compact" id="dashboardQueueList"></div>
           </section>
         </div>
       </section>
@@ -175,16 +176,32 @@
                   <th>車牌</th>
                   <th>車主</th>
                   <th>手機</th>
-                  <th>預約日期</th>
+                  <th>最近預約日</th>
                   <th>車齡</th>
                   <th>檢驗週期</th>
                   <th>下次建議日</th>
-                  <th>狀態</th>
+                  <th>通知同意</th>
                 </tr>
               </thead>
               <tbody id="vehicleTable"></tbody>
             </table>
           </div>
+        </section>
+      </section>
+
+      <section class="view" id="workorders">
+        <section class="panel">
+          <div class="panel-head split">
+            <div>
+              <h2>當日預約與現場工單</h2>
+              <p>依營業日期顯示當日預約、報到、等待、檢驗中、完成與覆驗狀態。</p>
+            </div>
+            <div class="workorder-meta">
+              <span>目前日期</span>
+              <strong id="workorderDateText"></strong>
+            </div>
+          </div>
+          <div class="queue-list" id="workorderList"></div>
         </section>
       </section>
 
