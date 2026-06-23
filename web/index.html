@@ -169,6 +169,18 @@
             </div>
             <input class="search-input" id="vehicleSearch" placeholder="搜尋車牌、姓名或手機">
           </div>
+          <div class="import-tools">
+            <div>
+              <strong>Excel 車籍資料匯入</strong>
+              <span>下載範本後將既有資料貼入欄位，再上傳建立車輛資料庫。</span>
+            </div>
+            <a class="secondary-btn" href="../data/車籍資料匯入範本.xlsx" download>下載 Excel 範本</a>
+            <label class="file-btn">
+              <input id="vehicleImportFile" type="file" accept=".xlsx,.xls">
+              上傳 Excel
+            </label>
+            <span class="import-result" id="vehicleImportResult"></span>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -266,6 +278,7 @@
     </article>
   </template>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

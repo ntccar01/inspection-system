@@ -31,3 +31,6 @@ firebase-adminsdk*.json
 node_modules/
 dist/
 build/
+
+# Local dependency links
+node_modules

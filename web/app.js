@@ -112,6 +112,7 @@ function saveState() {
 }
 
 function getAgeYears(manufactured) {
+  if (!manufactured || !/^\d{4}-\d{2}$/.test(manufactured)) return null;
   const [year, month] = manufactured.split("-").map(Number);
   const now = new Date();
   let age = now.getFullYear() - year;
@@ -121,6 +122,7 @@ function getAgeYears(manufactured) {
 
 function getInspectionRule(manufactured) {
   const age = getAgeYears(manufactured);
+  if (age === null) return { age: "-", label: "未填出廠年月", months: 0, text: "待補資料" };
   if (age < 5) return { age, label: "未滿 5 年", months: 0, text: "免定期檢驗" };
   if (age < 10) return { age, label: "5-10 年", months: 12, text: "每年一次" };
   return { age, label: "10 年以上", months: 6, text: "每年二次" };
@@ -150,9 +152,44 @@ function formatDate(date) {
 }
 
 function getNextInspectionDate(booking) {
+  if (booking.nextInspectionDate) return booking.nextInspectionDate;
   const rule = getInspectionRule(booking.manufactured);
   if (!rule.months) return "尚免定檢";
   return formatDate(addMonths(new Date(), rule.months));
+}
+
+function normalizeExcelDate(value) {
+  if (!value) return "";
+  if (value instanceof Date) return formatDate(value);
+  const text = String(value).trim().replaceAll("/", "-");
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+    const [year, month, day] = text.split("-").map((part) => part.padStart(2, "0"));
+    return `${year}-${month}-${day}`;
+  }
+  if (/^\d{4}-\d{1,2}$/.test(text)) {
+    const [year, month] = text.split("-");
+    return `${year}-${month.padStart(2, "0")}`;
+  }
+  return text;
+}
+
+function normalizeManufacturedMonth(value) {
+  const text = normalizeExcelDate(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text.slice(0, 7);
+  if (/^\d{4}-\d{2}$/.test(text)) return text;
+  return "";
+}
+
+function parseConsent(value) {
+  const text = String(value || "").trim().toLowerCase();
+  return ["同意", "是", "yes", "y", "true", "1"].includes(text);
+}
+
+function pick(row, names) {
+  for (const name of names) {
+    if (row[name] !== undefined && String(row[name]).trim() !== "") return String(row[name]).trim();
+  }
+  return "";
 }
 
 function getSelectedDateBookings() {
@@ -312,7 +349,7 @@ function renderVehicleTable() {
           <td>${booking.owner}</td>
           <td>${booking.phone}</td>
           <td>${booking.bookingDate}</td>
-          <td>${rule.age} 年</td>
+          <td>${rule.age === "-" ? "待補" : `${rule.age} 年`}</td>
           <td>${rule.text}</td>
           <td>${getNextInspectionDate(booking)}</td>
           <td>${booking.consent ? "同意" : "未同意"}</td>
@@ -325,8 +362,65 @@ function renderVehicleTable() {
 function getReminderBookings() {
   return state.bookings.filter((booking) => {
     const rule = getInspectionRule(booking.manufactured);
-    return booking.consent && rule.months > 0 && !["已取消", "未到"].includes(booking.status);
+    return booking.consent && (rule.months > 0 || booking.nextInspectionDate) && !["已取消", "未到"].includes(booking.status);
   });
+}
+
+async function importVehicleWorkbook(file) {
+  const result = document.querySelector("#vehicleImportResult");
+  if (!window.XLSX) {
+    result.textContent = "Excel 匯入工具尚未載入，請確認網路連線後重新整理。";
+    return;
+  }
+
+  const buffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true });
+  const sheetName = workbook.SheetNames.includes("車籍資料匯入") ? "車籍資料匯入" : workbook.SheetNames[0];
+  const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+  let imported = 0;
+  let skipped = 0;
+
+  rows.forEach((row) => {
+    const plate = pick(row, ["車牌號碼", "車牌", "牌照號碼"]).toUpperCase();
+    if (!plate) {
+      skipped += 1;
+      return;
+    }
+
+    state.bookings = state.bookings.filter((booking) => !(booking.source === "excel" && booking.plate === plate));
+    state.bookings.push({
+      id: `XLSX${Date.now()}${imported}`,
+      source: "excel",
+      plate,
+      owner: pick(row, ["車主姓名", "車主", "姓名"]) || "未填寫",
+      phone: pick(row, ["手機", "電話", "聯絡電話"]),
+      type: pick(row, ["車種", "車輛種類"]) || "自用小客車",
+      manufactured: normalizeManufacturedMonth(pick(row, ["出廠年月", "出廠日期"])),
+      firstLicenseDate: normalizeExcelDate(pick(row, ["初次領牌日", "領牌日"])),
+      lastInspectionDate: normalizeExcelDate(pick(row, ["上次檢驗日", "最近檢驗日"])),
+      nextInspectionDate: normalizeExcelDate(pick(row, ["下次檢驗日", "下次建議日"])),
+      bookingDate: normalizeExcelDate(pick(row, ["上次檢驗日", "最近檢驗日"])) || todayISO(),
+      slot: "資料匯入",
+      status: "已離場",
+      consent: parseConsent(pick(row, ["通知同意", "提醒同意"])),
+      notificationMethod: pick(row, ["通知方式", "偏好通知方式"]),
+      email: pick(row, ["Email", "電子郵件"]),
+      address: pick(row, ["地址"]),
+      identitySuffix: pick(row, ["身分證末四碼"]),
+      vinSuffix: pick(row, ["車身號碼末四碼"]),
+      fuel: pick(row, ["燃料種類"]),
+      displacement: pick(row, ["排氣量"]),
+      noticeStatus: "尚未通知",
+      followupStatus: "待處理",
+      reminderNote: "",
+      note: pick(row, ["備註", "說明"])
+    });
+    imported += 1;
+  });
+
+  saveState();
+  render();
+  result.textContent = `已匯入 ${imported} 筆車籍資料${skipped ? `，略過 ${skipped} 筆未填車牌資料` : ""}。`;
 }
 
 function renderReminders() {
@@ -469,6 +563,18 @@ function bindEvents() {
   });
 
   document.querySelector("#vehicleSearch").addEventListener("input", renderVehicleTable);
+
+  document.querySelector("#vehicleImportFile").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      await importVehicleWorkbook(file);
+    } catch (error) {
+      document.querySelector("#vehicleImportResult").textContent = `匯入失敗：${error.message}`;
+    } finally {
+      event.target.value = "";
+    }
+  });
 
   document.querySelector("#addSlot").addEventListener("click", () => {
     const defaultStart = state.slots.at(-1) ? splitSlotTime(state.slots.at(-1).time).end : "09:00";
