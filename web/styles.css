@@ -342,6 +342,29 @@ h2 {
   grid-template-columns: minmax(0, 1fr) 150px;
 }
 
+.reminder-item {
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.85fr);
+  align-items: start;
+}
+
+.reminder-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reminder-actions label {
+  font-size: 14px;
+}
+
+.reminder-note {
+  grid-column: 1 / -1;
+}
+
+.reminder-note input {
+  min-height: 38px;
+}
+
 .queue-item small,
 .public-item small,
 .reminder-item small,
@@ -566,6 +589,10 @@ th {
   .public-item,
   .reminder-item,
   .rule-item {
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-actions {
     grid-template-columns: 1fr;
   }
 

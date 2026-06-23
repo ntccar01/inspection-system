@@ -26,6 +26,9 @@ const defaultState = {
       slot: "09:00-10:00",
       status: "已報到",
       consent: true,
+      noticeStatus: "尚未通知",
+      followupStatus: "待處理",
+      reminderNote: "",
       note: "電話預約補登"
     },
     {
@@ -39,6 +42,9 @@ const defaultState = {
       slot: "10:00-11:00",
       status: "等待檢驗",
       consent: true,
+      noticeStatus: "尚未通知",
+      followupStatus: "待處理",
+      reminderNote: "",
       note: ""
     },
     {
@@ -52,6 +58,9 @@ const defaultState = {
       slot: "10:00-11:00",
       status: "檢驗中",
       consent: true,
+      noticeStatus: "已通知",
+      followupStatus: "需再追蹤",
+      reminderNote: "已電話通知，車主表示月底前安排",
       note: "十年以上車輛"
     },
     {
@@ -65,12 +74,17 @@ const defaultState = {
       slot: "14:30-15:30",
       status: "已預約",
       consent: false,
+      noticeStatus: "不需通知",
+      followupStatus: "已完成",
+      reminderNote: "",
       note: ""
     }
   ]
 };
 
 const statuses = ["已預約", "已報到", "等待檢驗", "檢驗中", "檢驗完成", "未通過待處理", "覆驗", "已離場", "未到", "已取消"];
+const noticeStatuses = ["尚未通知", "已通知", "未接通", "已回覆", "不需通知"];
+const followupStatuses = ["待處理", "已預約", "需再追蹤", "暫緩", "已完成"];
 let state = loadState();
 
 function loadState() {
@@ -81,7 +95,10 @@ function loadState() {
     parsed.selectedDate = parsed.selectedDate || todayISO();
     parsed.bookings = (parsed.bookings || []).map((booking) => ({
       ...booking,
-      bookingDate: booking.bookingDate || todayISO()
+      bookingDate: booking.bookingDate || todayISO(),
+      noticeStatus: booking.noticeStatus || "尚未通知",
+      followupStatus: booking.followupStatus || "待處理",
+      reminderNote: booking.reminderNote || ""
     }));
     parsed.slots = parsed.slots || structuredClone(defaultState.slots);
     return parsed;
@@ -317,13 +334,28 @@ function renderReminders() {
   const reminders = getReminderBookings();
   list.innerHTML = reminders.map((booking) => {
     const rule = getInspectionRule(booking.manufactured);
+    const noticeOptions = noticeStatuses.map((status) => `<option ${status === booking.noticeStatus ? "selected" : ""}>${status}</option>`).join("");
+    const followupOptions = followupStatuses.map((status) => `<option ${status === booking.followupStatus ? "selected" : ""}>${status}</option>`).join("");
     return `
       <article class="reminder-item">
         <div>
           <strong>${booking.plate}｜${booking.owner}</strong>
           <small>${booking.phone}｜${rule.text}｜下次建議 ${getNextInspectionDate(booking)}</small>
         </div>
-        <span class="badge normal">可通知</span>
+        <div class="reminder-actions">
+          <label>
+            <span>通知狀態</span>
+            <select data-reminder-field="noticeStatus" data-id="${booking.id}">${noticeOptions}</select>
+          </label>
+          <label>
+            <span>後續處理</span>
+            <select data-reminder-field="followupStatus" data-id="${booking.id}">${followupOptions}</select>
+          </label>
+          <label class="reminder-note">
+            <span>追蹤備註</span>
+            <input data-reminder-field="reminderNote" data-id="${booking.id}" value="${booking.reminderNote || ""}" placeholder="例如：已電話通知、下週再聯絡">
+          </label>
+        </div>
       </article>
     `;
   }).join("") || `<article class="reminder-item"><div><strong>目前沒有提醒名單</strong><small>新增有通知同意的車輛後會出現在這裡。</small></div></article>`;
@@ -393,6 +425,9 @@ function bindEvents() {
       slot: form.get("slot"),
       status: "已預約",
       consent: form.get("consent") === "on",
+      noticeStatus: "尚未通知",
+      followupStatus: "待處理",
+      reminderNote: "",
       note: form.get("note").trim()
     });
     event.currentTarget.reset();
@@ -409,6 +444,27 @@ function bindEvents() {
       booking.status = event.target.value;
       saveState();
       render();
+    }
+  });
+
+  document.querySelector("#reminderList").addEventListener("change", (event) => {
+    const field = event.target.dataset.reminderField;
+    if (!field || field === "reminderNote") return;
+    const booking = state.bookings.find((item) => item.id === event.target.dataset.id);
+    if (booking) {
+      booking[field] = event.target.value;
+      saveState();
+      renderMetrics();
+    }
+  });
+
+  document.querySelector("#reminderList").addEventListener("input", (event) => {
+    const field = event.target.dataset.reminderField;
+    if (field !== "reminderNote") return;
+    const booking = state.bookings.find((item) => item.id === event.target.dataset.id);
+    if (booking) {
+      booking[field] = event.target.value;
+      saveState();
     }
   });
 

@@ -21,7 +21,7 @@
         <button class="nav-tab" type="button" data-view="booking">車主預約</button>
         <button class="nav-tab" type="button" data-view="vehicles">車輛資料</button>
         <button class="nav-tab" type="button" data-view="workorders">現場工單</button>
-        <button class="nav-tab" type="button" data-view="reminders">提醒名單</button>
+        <button class="nav-tab" type="button" data-view="reminders">到期提醒</button>
         <button class="nav-tab" type="button" data-view="settings">容量設定</button>
       </nav>
       <div class="side-note">
@@ -64,9 +64,9 @@
             <small>預估等待依平均 12 分鐘估算</small>
           </article>
           <article class="summary-card">
-            <span>下次提醒</span>
+            <span>待通知車主</span>
             <strong id="metricReminders">0</strong>
-            <small>45 天內建議聯絡</small>
+            <small>需追蹤的驗車到期名單</small>
           </article>
         </div>
 
@@ -210,8 +210,8 @@
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>待提醒車主</h2>
-                <p>先產生人工聯絡名單，未來可串接 LINE 或簡訊。</p>
+                <h2>驗車到期提醒名單</h2>
+                <p>列出需要聯絡的車主，記錄通知狀態與後續處理結果。</p>
               </div>
             </div>
             <div class="reminder-list" id="reminderList"></div>
@@ -220,8 +220,8 @@
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>通知規則</h2>
-                <p>目前先作為規劃設定，後續可變成後台可調參數。</p>
+                <h2>提醒處理方式</h2>
+                <p>先支援人工追蹤紀錄，未來可串接 LINE、簡訊或電話紀錄。</p>
               </div>
             </div>
             <div class="rule-list">
@@ -229,6 +229,9 @@
               <div class="rule-item"><strong>30 天前</strong><span>正式提醒，建議完成預約。</span></div>
               <div class="rule-item"><strong>14 天前</strong><span>加強提醒，避免逾期。</span></div>
               <div class="rule-item"><strong>7 天前</strong><span>最後提醒，必要時人工電話追蹤。</span></div>
+              <div class="rule-item"><strong>已通知</strong><span>已完成 LINE、簡訊或電話通知，等待車主回覆。</span></div>
+              <div class="rule-item"><strong>已預約</strong><span>車主已安排時段，可從提醒名單轉為預約追蹤。</span></div>
+              <div class="rule-item"><strong>暫緩</strong><span>車主表示稍後處理，需保留備註與下次追蹤時間。</span></div>
             </div>
           </section>
         </div>
