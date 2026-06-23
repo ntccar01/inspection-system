@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>驗車場智慧預約與流場管理原型</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主要導覽">
+      <div class="brand">
+        <span class="brand-mark">檢</span>
+        <div>
+          <strong>驗車場中控</strong>
+          <small>預約與流場管理原型</small>
+        </div>
+      </div>
+      <nav class="nav-tabs" aria-label="功能分頁">
+        <button class="nav-tab active" type="button" data-view="dashboard">今日看板</button>
+        <button class="nav-tab" type="button" data-view="booking">車主預約</button>
+        <button class="nav-tab" type="button" data-view="vehicles">車輛資料</button>
+        <button class="nav-tab" type="button" data-view="reminders">提醒名單</button>
+        <button class="nav-tab" type="button" data-view="settings">容量設定</button>
+      </nav>
+      <div class="side-note">
+        <strong>原型資料</strong>
+        <span>目前使用瀏覽器本機資料，不連外部 API。</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">MVP 開工版</p>
+          <h1>智慧預約與現場流場管理</h1>
+        </div>
+        <div class="today-box">
+          <span id="todayText"></span>
+          <strong id="currentLoadText"></strong>
+        </div>
+      </header>
+
+      <section class="view active" id="dashboard">
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span>今日預約</span>
+            <strong id="metricBookings">0</strong>
+            <small>含尚未報到車輛</small>
+          </article>
+          <article class="summary-card">
+            <span>已報到</span>
+            <strong id="metricCheckedIn">0</strong>
+            <small>目前已進入現場流程</small>
+          </article>
+          <article class="summary-card">
+            <span>等待中</span>
+            <strong id="metricWaiting">0</strong>
+            <small>預估等待依平均 12 分鐘估算</small>
+          </article>
+          <article class="summary-card">
+            <span>下次提醒</span>
+            <strong id="metricReminders">0</strong>
+            <small>45 天內建議聯絡</small>
+          </article>
+        </div>
+
+        <div class="content-grid dashboard-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>今日時段狀態</h2>
+                <p>車主端可看到簡化狀態，廠內端保留完整數字。</p>
+              </div>
+            </div>
+            <div class="slot-list" id="slotList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>現場車流</h2>
+                <p>用車牌快速更新報到、檢驗中、完成或覆驗。</p>
+              </div>
+            </div>
+            <div class="queue-list" id="queueList"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="booking">
+        <div class="content-grid form-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>車主線上預約</h2>
+                <p>模擬車主填寫預約，送出後會同步到今日看板。</p>
+              </div>
+            </div>
+            <form id="bookingForm" class="form">
+              <label>
+                <span>車牌號碼</span>
+                <input name="plate" required placeholder="ABC-1234">
+              </label>
+              <label>
+                <span>車主姓名</span>
+                <input name="owner" required placeholder="王先生">
+              </label>
+              <label>
+                <span>手機</span>
+                <input name="phone" required placeholder="0912-345-678">
+              </label>
+              <label>
+                <span>車種</span>
+                <select name="type">
+                  <option>自用小客車</option>
+                  <option>自用小貨車</option>
+                  <option>營業車</option>
+                  <option>機車</option>
+                </select>
+              </label>
+              <label>
+                <span>出廠年月</span>
+                <input name="manufactured" type="month" required>
+              </label>
+              <label>
+                <span>預約時段</span>
+                <select name="slot" id="bookingSlot"></select>
+              </label>
+              <label class="wide">
+                <span>備註</span>
+                <textarea name="note" rows="3" placeholder="例如：需補登電話預約、車主希望下午到場"></textarea>
+              </label>
+              <label class="check wide">
+                <input name="consent" type="checkbox" checked>
+                <span>車主同意接收預約與下次驗車提醒</span>
+              </label>
+              <button class="primary-btn wide" type="submit">建立預約</button>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>車主可見資訊</h2>
+                <p>這區模擬未預約車主看到的今日狀況。</p>
+              </div>
+            </div>
+            <div class="public-board" id="publicBoard"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="vehicles">
+        <section class="panel">
+          <div class="panel-head split">
+            <div>
+              <h2>車輛基本資料</h2>
+              <p>用於判斷車齡、下次檢驗週期與提醒名單。</p>
+            </div>
+            <input class="search-input" id="vehicleSearch" placeholder="搜尋車牌、姓名或手機">
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>車牌</th>
+                  <th>車主</th>
+                  <th>手機</th>
+                  <th>車齡</th>
+                  <th>檢驗週期</th>
+                  <th>下次建議日</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody id="vehicleTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" id="reminders">
+        <div class="content-grid form-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>待提醒車主</h2>
+                <p>先產生人工聯絡名單，未來可串接 LINE 或簡訊。</p>
+              </div>
+            </div>
+            <div class="reminder-list" id="reminderList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>通知規則</h2>
+                <p>目前先作為規劃設定，後續可變成後台可調參數。</p>
+              </div>
+            </div>
+            <div class="rule-list">
+              <div class="rule-item"><strong>45 天前</strong><span>第一次提醒，可安排較彈性的時段。</span></div>
+              <div class="rule-item"><strong>30 天前</strong><span>正式提醒，建議完成預約。</span></div>
+              <div class="rule-item"><strong>14 天前</strong><span>加強提醒，避免逾期。</span></div>
+              <div class="rule-item"><strong>7 天前</strong><span>最後提醒，必要時人工電話追蹤。</span></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="settings">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>時段容量設定</h2>
+              <p>調整每個時段的線上預約上限與現場保留量。</p>
+            </div>
+          </div>
+          <form id="capacityForm" class="capacity-grid"></form>
+          <button class="primary-btn" id="saveCapacity" type="button">儲存容量設定</button>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <template id="slotTemplate">
+    <article class="slot-card">
+      <div>
+        <strong class="slot-time"></strong>
+        <span class="slot-count"></span>
+      </div>
+      <div class="slot-meter"><span></span></div>
+      <span class="badge"></span>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
