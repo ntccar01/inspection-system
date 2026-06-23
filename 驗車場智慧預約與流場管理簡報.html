@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>驗車場智慧預約與流場管理簡報</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5c6975;
+      --line: #d7dee5;
+      --paper: #f6f8fa;
+      --panel: #ffffff;
+      --brand: #1f6f78;
+      --brand-2: #d66a31;
+      --brand-3: #3d7d46;
+      --warn: #b94e36;
+      --soft: #eaf3f4;
+      --soft-2: #fff1e8;
+      --soft-3: #edf6ee;
+      --shadow: 0 18px 50px rgba(23, 33, 43, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", Arial, sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .deck {
+      scroll-snap-type: y mandatory;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      display: flex;
+      align-items: center;
+      padding: 56px;
+      position: relative;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .slide-inner {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero {
+      color: #fff;
+      background:
+        linear-gradient(90deg, rgba(14, 36, 45, 0.9), rgba(14, 36, 45, 0.58)),
+        url("https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=1800&q=82") center / cover;
+    }
+
+    .hero .slide-inner {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 52px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      font-size: 15px;
+      letter-spacing: 0;
+      font-weight: 700;
+      color: var(--brand-2);
+    }
+
+    .hero .eyebrow {
+      color: #ffbf7f;
+    }
+
+    h1,
+    h2,
+    h3 {
+      line-height: 1.18;
+      letter-spacing: 0;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 58px;
+      max-width: 820px;
+    }
+
+    h2 {
+      font-size: 40px;
+      margin-bottom: 24px;
+    }
+
+    h3 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .lead {
+      margin-top: 22px;
+      font-size: 22px;
+      max-width: 760px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .hero-panel {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(10px);
+      padding: 28px;
+      border-radius: 8px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 15px;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 8px 28px rgba(23, 33, 43, 0.07);
+    }
+
+    .card.accent {
+      background: var(--soft);
+      border-color: #c4dde1;
+    }
+
+    .card.orange {
+      background: var(--soft-2);
+      border-color: #f0c6a8;
+    }
+
+    .card.green {
+      background: var(--soft-3);
+      border-color: #c8dfca;
+    }
+
+    .card p,
+    .item p,
+    .timeline p {
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .step {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      min-height: 150px;
+      position: relative;
+    }
+
+    .step b {
+      color: var(--brand);
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .step strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .queue-board {
+      background: #10252e;
+      color: #fff;
+      border-radius: 8px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .queue-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 120px;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .queue-row:last-child {
+      border-bottom: 0;
+    }
+
+    .bar {
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: var(--brand-2);
+    }
+
+    .status {
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      color: #7de29a;
+    }
+
+    .status.busy {
+      color: #ffd07b;
+    }
+
+    .status.full {
+      color: #ff8d7d;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 26px;
+    }
+
+    .phase {
+      background: #fff;
+      border-left: 6px solid var(--brand);
+      border-radius: 8px;
+      padding: 22px;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phase:nth-child(2) {
+      border-left-color: var(--brand-2);
+    }
+
+    .phase:nth-child(3) {
+      border-left-color: var(--brand-3);
+    }
+
+    .phase:nth-child(4) {
+      border-left-color: var(--warn);
+    }
+
+    ul {
+      padding-left: 22px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .big-question {
+      font-size: 26px;
+      line-height: 1.45;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .footer-tag {
+      position: absolute;
+      left: 56px;
+      bottom: 24px;
+      font-size: 13px;
+      color: rgba(23, 33, 43, 0.48);
+      font-weight: 700;
+    }
+
+    .hero .footer-tag {
+      color: rgba(255, 255, 255, 0.62);
+    }
+
+    @media (max-width: 900px) {
+      .slide {
+        padding: 36px 20px 56px;
+      }
+
+      .hero .slide-inner,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .timeline,
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      h2 {
+        font-size: 30px;
+      }
+
+      .lead {
+        font-size: 19px;
+      }
+
+      .queue-row {
+        grid-template-columns: 84px 1fr 86px;
+      }
+
+      .footer-tag {
+        left: 20px;
+      }
+    }
+
+    @media print {
+      .deck {
+        height: auto;
+        overflow: visible;
+      }
+
+      .slide {
+        min-height: 100vh;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide hero">
+      <div class="slide-inner">
+        <div>
+          <p class="eyebrow">驗車場專案討論簡報</p>
+          <h1>智慧預約與現場流場管理系統</h1>
+          <p class="lead">讓車主知道什麼時候來比較不用等，讓驗車場掌握今日車流、預約量、到期提醒與客戶回訪。</p>
+          <div class="pill-row">
+            <span class="pill">線上預約</span>
+            <span class="pill">即時等待資訊</span>
+            <span class="pill">下次驗車提醒</span>
+            <span class="pill">廠內中控台</span>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="metric-grid">
+            <div class="metric">
+              <strong>即時</strong>
+              <span>更新現場等待與各時段預約量</span>
+            </div>
+            <div class="metric">
+              <strong>減少</strong>
+              <span>電話詢問、現場等待與櫃台重工</span>
+            </div>
+            <div class="metric">
+              <strong>主動</strong>
+              <span>通知車主安排下次檢驗</span>
+            </div>
+            <div class="metric">
+              <strong>累積</strong>
+              <span>車輛、車主與營運資料</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-tag">01 / 專案定位</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">現在常見痛點</p>
+        <h2>驗車場每天處理的，不只是預約</h2>
+        <div class="grid-3">
+          <article class="card">
+            <h3>車主不知道何時來</h3>
+            <p>電話詢問、臨時到場、尖峰排隊，容易造成車主等待與現場壓力。</p>
+          </article>
+          <article class="card">
+            <h3>現場資訊難同步</h3>
+            <p>預約車、臨時車、檢驗中、覆驗車混在一起，櫃台與檢驗線不容易有共同畫面。</p>
+          </article>
+          <article class="card">
+            <h3>到期提醒靠人工</h3>
+            <p>車輛檢驗週期不同，若沒有系統提醒，就很難穩定通知車主回場安排。</p>
+          </article>
+        </div>
+        <div class="note">本系統的核心價值：把「預約」、「現場排隊」、「車輛資料」、「下次提醒」整合成一個每日營運工具。</div>
+      </div>
+      <div class="footer-tag">02 / 現場問題</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">車主端體驗</p>
+        <h2>讓車主在來之前，就能做出好選擇</h2>
+        <div class="grid-2">
+          <article class="card accent">
+            <h3>手機網頁預約</h3>
+            <p>車主輸入車牌、姓名、手機與希望時段，即可完成預約。舊客戶可用車牌或手機快速帶出資料。</p>
+            <ul>
+              <li>選擇日期與時段</li>
+              <li>查看剩餘名額</li>
+              <li>取得預約碼或 QR Code</li>
+            </ul>
+          </article>
+          <article class="card orange">
+            <h3>即時流量資訊</h3>
+            <p>顯示今日現場等待車數、預估等待時間、各時段預約量，降低「到了才發現很塞」的情況。</p>
+            <ul>
+              <li>空閒：建議前往</li>
+              <li>普通：可預約</li>
+              <li>忙碌：可能需等待</li>
+              <li>滿載：建議改時段</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+      <div class="footer-tag">03 / 車主端</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">廠內端體驗</p>
+        <h2>一張今日總覽，看懂現場正在發生什麼</h2>
+        <div class="grid-2">
+          <div class="queue-board">
+            <div class="queue-row">
+              <strong>09:00</strong>
+              <div class="bar"><span style="width: 62%"></span></div>
+              <span class="status ok">可預約</span>
+            </div>
+            <div class="queue-row">
+              <strong>10:00</strong>
+              <div class="bar"><span style="width: 94%"></span></div>
+              <span class="status full">接近滿載</span>
+            </div>
+            <div class="queue-row">
+              <strong>11:00</strong>
+              <div class="bar"><span style="width: 76%"></span></div>
+              <span class="status busy">忙碌</span>
+            </div>
+            <div class="queue-row">
+              <strong>14:00</strong>
+              <div class="bar"><span style="width: 38%"></span></div>
+              <span class="status ok">建議</span>
+            </div>
+          </div>
+          <article class="card">
+            <h3>廠內中控台</h3>
+            <p>櫃台與檢驗人員看到同一份即時資料，快速掌握預約、報到、等待、檢驗中與完成數量。</p>
+            <ul>
+              <li>今日預約與臨時到場車</li>
+              <li>車牌快速搜尋與報到</li>
+              <li>檢驗流程狀態更新</li>
+              <li>未到、取消、改期、覆驗管理</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+      <div class="footer-tag">04 / 廠內中控</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">建議流程</p>
+        <h2>從預約到完成，流程要簡單清楚</h2>
+        <div class="flow">
+          <div class="step">
+            <b>STEP 1</b>
+            <strong>線上預約</strong>
+            <p>車主選擇日期時段，留下車牌與手機。</p>
+          </div>
+          <div class="step">
+            <b>STEP 2</b>
+            <strong>到場報到</strong>
+            <p>掃 QR Code 或輸入車牌，進入今日隊列。</p>
+          </div>
+          <div class="step">
+            <b>STEP 3</b>
+            <strong>等待檢驗</strong>
+            <p>系統同步更新現場等待量與預估時間。</p>
+          </div>
+          <div class="step">
+            <b>STEP 4</b>
+            <strong>檢驗完成</strong>
+            <p>記錄結果、完成時間、是否需要覆驗。</p>
+          </div>
+          <div class="step">
+            <b>STEP 5</b>
+            <strong>下次提醒</strong>
+            <p>依車齡與檢驗週期，自動列入通知名單。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-tag">05 / 作業流程</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">車輛資料與提醒</p>
+        <h2>把一次驗車，變成下一次服務的起點</h2>
+        <div class="grid-3">
+          <article class="card">
+            <h3>車輛基本資料</h3>
+            <p>車牌、車主、手機、車種、出廠年月、上次檢驗日、本次檢驗日、下次建議日期。</p>
+          </article>
+          <article class="card green">
+            <h3>檢驗週期規則</h3>
+            <p>自用小客車可依車齡分級：未滿 5 年免定檢、5 至 10 年每年一次、10 年以上每年二次。</p>
+          </article>
+          <article class="card orange">
+            <h3>通知節點</h3>
+            <p>可在到期前 45 天、30 天、14 天、7 天與逾期後，分批產生提醒名單或發送通知。</p>
+          </article>
+        </div>
+        <div class="note">提醒規則建議做成可調整設定，避免日後法規、車種或營運策略改變時需要重做系統。</div>
+      </div>
+      <div class="footer-tag">06 / 提醒機制</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">功能模組</p>
+        <h2>建議模組分工</h2>
+        <div class="grid-4">
+          <article class="card">
+            <h3>預約模組</h3>
+            <p>時段設定、容量管理、預約建立、改期取消、未到標記。</p>
+          </article>
+          <article class="card">
+            <h3>現場模組</h3>
+            <p>報到、叫號、等待隊列、檢驗狀態、完成與覆驗。</p>
+          </article>
+          <article class="card">
+            <h3>車籍模組</h3>
+            <p>車主資料、車輛資料、檢驗紀錄、下次檢驗日期。</p>
+          </article>
+          <article class="card">
+            <h3>通知模組</h3>
+            <p>預約通知、到期提醒、逾期追蹤、批次發送名單。</p>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top:18px">
+          <article class="card accent">
+            <h3>看板模組</h3>
+            <p>車主查詢頁、現場大螢幕、今日流量狀態、建議來場時段。</p>
+          </article>
+          <article class="card green">
+            <h3>報表模組</h3>
+            <p>每日車量、尖峰時段、未到率、通知成效、回訪率與員工作業統計。</p>
+          </article>
+        </div>
+      </div>
+      <div class="footer-tag">07 / 模組架構</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">分階段導入</p>
+        <h2>先解決現場最痛，再逐步擴充</h2>
+        <div class="timeline">
+          <article class="phase">
+            <h3>第一階段</h3>
+            <p>基礎預約與車輛資料</p>
+            <ul>
+              <li>車主線上預約</li>
+              <li>廠內預約管理</li>
+              <li>車輛基本資料</li>
+              <li>下次檢驗日期</li>
+            </ul>
+          </article>
+          <article class="phase">
+            <h3>第二階段</h3>
+            <p>即時流場管理</p>
+            <ul>
+              <li>報到與隊列</li>
+              <li>等待數即時更新</li>
+              <li>檢驗狀態</li>
+              <li>現場看板</li>
+            </ul>
+          </article>
+          <article class="phase">
+            <h3>第三階段</h3>
+            <p>通知與客戶經營</p>
+            <ul>
+              <li>LINE 或簡訊通知</li>
+              <li>到期提醒</li>
+              <li>逾期追蹤</li>
+              <li>回訪名單</li>
+            </ul>
+          </article>
+          <article class="phase">
+            <h3>第四階段</h3>
+            <p>營運分析與優化</p>
+            <ul>
+              <li>尖峰分析</li>
+              <li>未到率</li>
+              <li>等待時間</li>
+              <li>容量調整建議</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+      <div class="footer-tag">08 / 導入路線</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">現場討論題目</p>
+        <h2>這些問題會影響第一版怎麼做</h2>
+        <div class="grid-2">
+          <article class="card">
+            <p class="big-question">每小時實際可消化幾台車？預約名額要保留多少給臨時到場車？</p>
+          </article>
+          <article class="card">
+            <p class="big-question">現場流程有幾個狀態？櫃台與檢驗線各自負責更新哪些資料？</p>
+          </article>
+          <article class="card">
+            <p class="big-question">車主通知要先用 LINE、簡訊，還是先產生人工電話名單？</p>
+          </article>
+          <article class="card">
+            <p class="big-question">第一版是否需要串接監理資料，或先以人工建檔與檢驗紀錄為主？</p>
+          </article>
+        </div>
+      </div>
+      <div class="footer-tag">09 / 會議討論</div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-inner">
+        <p class="eyebrow">建議下一步</p>
+        <h2>先做現場訪談，再定義第一版範圍</h2>
+        <div class="grid-3">
+          <article class="card accent">
+            <h3>1. 訪談現場流程</h3>
+            <p>記錄車主進場、報到、檢驗、繳費、離場與覆驗的實際步驟。</p>
+          </article>
+          <article class="card orange">
+            <h3>2. 確認容量規則</h3>
+            <p>決定每時段可預約數、臨時車保留量、尖峰時段與休息時間。</p>
+          </article>
+          <article class="card green">
+            <h3>3. 定義 MVP</h3>
+            <p>先做能上線使用的最小版本，再逐步加入即時看板與自動通知。</p>
+          </article>
+        </div>
+        <div class="note">第一版成功標準：現場願意每天打開使用，車主能看懂時段與等待資訊，資料能留下來做下一次提醒。</div>
+      </div>
+      <div class="footer-tag">10 / 下一步</div>
+    </section>
+  </main>
+</body>
+</html>
