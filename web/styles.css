@@ -342,6 +342,20 @@ h2 {
   grid-template-columns: minmax(0, 1fr) 150px;
 }
 
+.rule-item {
+  grid-template-columns: minmax(86px, max-content) minmax(0, 1fr);
+  align-items: start;
+}
+
+.rule-item strong {
+  white-space: nowrap;
+  line-height: 1.45;
+}
+
+.rule-item span {
+  line-height: 1.55;
+}
+
 .reminder-item {
   grid-template-columns: minmax(0, 1fr) minmax(330px, 0.85fr);
   align-items: start;
@@ -551,6 +565,10 @@ th {
   .dashboard-grid,
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rule-item {
+    grid-template-columns: 1fr;
   }
 }
 
