@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}線上預約 — 驗車場預約系統{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <section class="card">
+    <p class="eyebrow">車主預約</p>
+    <h2>填寫預約資料</h2>
+    <form id="reserveForm" style="display:grid;gap:14px;margin-top:12px;">
+      <label>
+        <span>車牌號碼</span>
+        <input name="license_plate" id="plateInput" required placeholder="例如 ABC-1234"
+               oninput="lookupVehicle(this.value)">
+      </label>
+      <div id="lookupResult" style="font-size:14px;color:var(--muted);min-height:20px;"></div>
+      <label>
+        <span>車主姓名</span>
+        <input name="owner_name" id="nameInput" required>
+      </label>
+      <label>
+        <span>手機號碼</span>
+        <input name="phone" id="phoneInput" required placeholder="0912-345-678">
+      </label>
+      <label>
+        <span>車種</span>
+        <select name="vehicle_type" id="typeInput">
+          <option>自用小客車</option><option>自用小貨車</option>
+          <option>營業小客車</option><option>營業大貨車</option>
+          <option>機車</option>
+        </select>
+      </label>
+      <label>
+        <span>出廠年份</span>
+        <select name="manufacture_year" id="yearInput">
+          <option value="">-- 選擇出廠年份 --</option>
+          {% for y in range(2005, 2027) %}
+          <option value="{{ y }}">{{ y }} 年</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>預約日期</span>
+        <input name="reserve_date" id="dateInput" type="date" required>
+      </label>
+      <label>
+        <span>預約時段</span>
+        <select name="time_slot" id="slotInput" required>
+          <option value="">-- 請選擇時段 --</option>
+        </select>
+      </label>
+      <label>
+        <span>備註（選填）</span>
+        <textarea name="notes" rows="2" placeholder="例如：第一次驗車、上次有覆驗等"></textarea>
+      </label>
+      <button class="btn btn-orange" type="submit" style="font-size:16px;min-height:48px;">
+        送出預約
+      </button>
+    </form>
+    <div id="formMessage" style="margin-top:12px;font-weight:700;"></div>
+  </section>
+
+  <section class="card orange">
+    <h2>預約注意事項</h2>
+    <ul style="margin-top:12px;padding-left:20px;color:var(--muted);display:grid;gap:8px;">
+      <li>請輸入正確車牌號碼，以便快速報到</li>
+      <li>可選擇 7 天內的時段進行預約</li>
+      <li>預約完成後會產生預約編號，請截圖或紀錄</li>
+      <li>若需取消或改期，請來電或到場告知櫃台</li>
+    </ul>
+    <div style="margin-top:20px;padding:16px;background:#fff;border-radius:8px;border:1px solid #f0c6a8;">
+      <strong style="color:var(--orange);">今日各時段狀態</strong>
+      <div style="margin-top:10px;display:grid;gap:8px;" id="liveSlots"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('dateInput').value = today;
+  document.getElementById('dateInput').min = today;
+  loadSlots(today);
+  document.getElementById('dateInput').addEventListener('change', function() {
+    loadSlots(this.value);
+  });
+});
+
+let lookupTimeout = null;
+function lookupVehicle(plate) {
+  clearTimeout(lookupTimeout);
+  const el = document.getElementById('lookupResult');
+  if (plate.length < 3) { el.textContent = ''; return; }
+  lookupTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/public/vehicle-lookup?plate=${encodeURIComponent(plate)}`);
+      const data = await res.json();
+      if (data.vehicle_type) {
+        document.getElementById('typeInput').value = data.vehicle_type;
+        if (data.manufacture_year) document.getElementById('yearInput').value = data.manufacture_year;
+        el.innerHTML = `<span style="color:var(--green);">已帶出車種與年份資料</span>`;
+      } else {
+        el.textContent = '未找到車籍資料，請手動填寫';
+      }
+    } catch(e) { el.textContent = ''; }
+  }, 300);
+}
+
+async function loadSlots(date) {
+  try {
+    const res = await fetch(`/api/slots?date=${date}`);
+    const slots = await res.json();
+    const sel = document.getElementById('slotInput');
+    sel.innerHTML = '<option value="">-- 請選擇時段 --</option>';
+    const live = document.getElementById('liveSlots');
+    live.innerHTML = '';
+    slots.forEach(s => {
+      const disabled = s.status_tone === 'full' ? 'disabled' : '';
+      sel.innerHTML += `<option value="${s.label}" ${disabled}>${s.label}（${s.status_label}，${s.count}/${s.max}）</option>`;
+      live.innerHTML += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #f0c6a8;border-radius:6px;background:#fff;">
+          <strong style="font-size:14px;">${s.label}</strong>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge ${s.status_tone}">${s.status_label}</span>
+            <span style="font-size:13px;color:var(--muted);">${s.count}/${s.max}</span>
+          </div>
+        </div>`;
+    });
+  } catch(e) { console.error(e); }
+}
+
+document.getElementById('reserveForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const msg = document.getElementById('formMessage');
+  const btn = this.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = '送出中…';
+  const data = Object.fromEntries(new FormData(this));
+  try {
+    const res = await fetch('/api/reservations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (res.ok) {
+      window.location.href = `/reserve/success?id=${result.id}&plate=${data.license_plate}&slot=${data.time_slot}`;
+    } else {
+      msg.style.color = 'var(--red)';
+      msg.textContent = result.error || '預約失敗，請重試';
+      btn.disabled = false; btn.textContent = '送出預約';
+    }
+  } catch(e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '系統錯誤，請稍後再試';
+    btn.disabled = false; btn.textContent = '送出預約';
+  }
+});
+</script>
+{% endblock %}

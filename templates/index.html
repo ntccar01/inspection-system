@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}車主首頁 — 驗車場智慧預約{% endblock %}
+{% block content %}
+<section style="text-align:center;padding:32px 0 24px;">
+  <p class="eyebrow">驗車場智慧預約系統</p>
+  <h1>今天來驗車，先看即時流量</h1>
+  <p class="muted" style="margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;">
+    查看各時段目前預約狀況，選擇較空閒的時間來場，減少現場等待時間。
+  </p>
+  <a href="/reserve" class="btn btn-orange" style="margin-top:18px;font-size:17px;min-height:48px;padding:10px 36px;">
+    我要線上預約
+  </a>
+</section>
+
+<section class="card" style="margin-top:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <h2 style="margin:0;">今日各時段狀態</h2>
+    <span class="muted" style="font-size:14px;">{{ today }}</span>
+  </div>
+  <div style="display:grid;gap:12px;" id="slotList">
+    {% for s in slots %}
+    <div style="display:grid;grid-template-columns:minmax(100px,140px) 1fr 80px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;">
+      <strong style="font-size:16px;">{{ s.label }}</strong>
+      <div style="height:14px;border-radius:999px;background:#e9eef2;overflow:hidden;">
+        <div style="height:100%;border-radius:999px;width:{{ s.pct }}%;background:{% if s.status_tone == 'full' %}#b94e36{% elif s.status_tone == 'busy' %}#b7792c{% elif s.status_tone == 'normal' %}#1f6f78{% else %}#3d7d46{% endif %};">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <span class="badge {{ s.status_tone }}">{{ s.status_label }}</span>
+        <span class="muted" style="font-size:13px;">{{ s.count }}/{{ s.max }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid-3" style="margin-top:20px;">
+  <article class="card accent" style="text-align:center;">
+    <strong style="font-size:36px;color:var(--teal);display:block;">{{ stats.total }}</strong>
+    <span class="muted">本日預約總數</span>
+  </article>
+  <article class="card orange" style="text-align:center;">
+    <strong style="font-size:36px;color:var(--orange);display:block;">{{ stats.checked_in }}</strong>
+    <span class="muted">目前已到場</span>
+  </article>
+  <article class="card green" style="text-align:center;">
+    <strong style="font-size:36px;color:var(--green);display:block;">{{ stats.completed }}</strong>
+    <span class="muted">已完成檢驗</span>
+  </article>
+</section>
+
+<section style="margin-top:24px;">
+  <h2>預約流程</h2>
+  <div class="grid-4" style="margin-top:12px;">
+    <div class="card" style="text-align:center;">
+      <strong style="font-size:24px;color:var(--teal);display:block;">1</strong>
+      <strong>線上預約</strong>
+      <p class="muted" style="font-size:14px;">輸入車牌與基本資料，選擇方便的日期時段</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <strong style="font-size:24px;color:var(--orange);display:block;">2</strong>
+      <strong>到場報到</strong>
+      <p class="muted" style="font-size:14px;">告知櫃台車牌號碼，快速完成報到手續</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <strong style="font-size:24px;color:var(--amber);display:block;">3</strong>
+      <strong>等待檢驗</strong>
+      <p class="muted" style="font-size:14px;">系統同步更新等待狀態，縮短排隊時間</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <strong style="font-size:24px;color:var(--green);display:block;">4</strong>
+      <strong>檢驗完成</strong>
+      <p class="muted" style="font-size:14px;">系統記錄下次檢驗時間，到期主動提醒</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

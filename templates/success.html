@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}預約成功{% endblock %}
+{% block content %}
+<section class="card green" style="max-width:520px;margin:40px auto;text-align:center;padding:32px;">
+  <div style="font-size:56px;margin-bottom:12px;">✓</div>
+  <h1 style="color:var(--green);">預約成功</h1>
+  <div style="margin:20px 0;font-size:18px;">
+    <p style="margin:6px 0;">車牌：<strong>{{ plate }}</strong></p>
+    <p style="margin:6px 0;">時段：<strong>{{ slot }}</strong></p>
+    <p style="margin:6px 0;">預約編號：<strong style="color:var(--teal);">#{{ rid }}</strong></p>
+  </div>
+  <p class="muted" style="margin-bottom:20px;">請於預約時段到場，告知櫃台車牌號碼即可快速報到。</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a href="/" class="btn btn-primary">回首頁</a>
+    <a href="/reserve" class="btn btn-outline">繼續預約</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}車籍管理{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <div>
+    <p class="eyebrow">車輛資料管理</p>
+    <h1 style="margin:0;">車籍資料庫</h1>
+  </div>
+  <input id="vehicleSearch" placeholder="搜尋車牌、車主或手機…"
+         style="max-width:280px;min-height:40px;"
+         oninput="searchVehicles(this.value)">
+</div>
+
+<section class="card" style="margin-bottom:18px;">
+  <h2>新增車輛</h2>
+  <form id="addVehicleForm" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px;">
+    <label>
+      <span>車牌號碼</span>
+      <input name="license_plate" required placeholder="ABC-1234">
+    </label>
+    <label>
+      <span>車主姓名</span>
+      <input name="owner_name" required>
+    </label>
+    <label>
+      <span>手機</span>
+      <input name="phone" required placeholder="0912-345-678">
+    </label>
+    <label>
+      <span>車種</span>
+      <select name="vehicle_type">
+        <option>自用小客車</option><option>自用小貨車</option>
+        <option>營業小客車</option><option>營業大貨車</option>
+        <option>機車</option>
+      </select>
+    </label>
+    <label>
+      <span>出廠年份</span>
+      <select name="manufacture_year">
+        <option value="">-- 選擇 --</option>
+        {% for y in range(2005, 2027) %}
+        <option value="{{ y }}">{{ y }} 年</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span>備註</span>
+      <textarea name="notes" rows="1" placeholder="選填"></textarea>
+    </label>
+    <div style="display:flex;align-items:end;">
+      <button class="btn btn-primary" type="submit" style="width:100%;">新增車輛</button>
+    </div>
+  </form>
+  <div id="addMsg" style="margin-top:10px;font-weight:700;"></div>
+</section>
+
+<section class="card">
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>車牌</th><th>車主</th><th>手機</th><th>車種</th><th>出廠年</th><th>上次檢驗</th><th>下次檢驗</th><th>備註</th>
+        </tr>
+      </thead>
+      <tbody id="vehicleTableBody">
+        {% for v in vehicles %}
+        <tr>
+          <td><strong>{{ v.license_plate }}</strong></td>
+          <td>{{ v.owner_name }}</td>
+          <td>{{ v.phone }}</td>
+          <td>{{ v.vehicle_type }}</td>
+          <td>{{ v.manufacture_year or '-' }}</td>
+          <td>{{ v.last_inspection or '-' }}</td>
+          <td>{{ v.next_inspection or '-' }}</td>
+          <td style="font-size:13px;color:var(--muted);">{{ v.notes or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+document.getElementById('addVehicleForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const msg = document.getElementById('addMsg');
+  const data = Object.fromEntries(new FormData(this));
+  try {
+    const res = await fetch('/api/vehicles', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (res.ok) {
+      msg.style.color = 'var(--green)';
+      msg.textContent = '車輛新增成功！頁面將重新整理';
+      this.reset();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      msg.style.color = 'var(--red)';
+      msg.textContent = result.error || '新增失敗';
+    }
+  } catch(e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '系統錯誤';
+  }
+});
+
+let searchTimer = null;
+function searchVehicles(keyword) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const tbody = document.getElementById('vehicleTableBody');
+    if (!keyword.trim()) {
+      location.reload();
+      return;
+    }
+    try {
+      const res = await fetch(`/api/vehicles/search?q=${encodeURIComponent(keyword)}`);
+      const data = await res.json();
+      tbody.innerHTML = data.map(v => `
+        <tr>
+          <td><strong>${v.license_plate}</strong></td>
+          <td>${v.owner_name}</td>
+          <td>${v.phone}</td>
+          <td>${v.vehicle_type}</td>
+          <td>${v.manufacture_year || '-'}</td>
+          <td>${v.last_inspection || '-'}</td>
+          <td>${v.next_inspection || '-'}</td>
+          <td style="font-size:13px;color:var(--muted);">${v.notes || ''}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">找不到符合資料</td></tr>';
+    } catch(e) {}
+  }, 300);
+}
+</script>
+{% endblock %}

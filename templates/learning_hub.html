@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}學習歷程 — 20 週課程{% endblock %}
+{% block content %}
+<style>
+  .phase-label { font-size: 13px; font-weight: 800; color: var(--muted); margin: 24px 0 10px; padding-left: 4px; border-left: 3px solid var(--teal); padding-left: 10px; }
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .week-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; text-align: center; box-shadow: var(--shadow); text-decoration: none; color: var(--ink); display: block; transition: transform 0.1s, box-shadow 0.1s; }
+  .week-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(23,33,43,0.12); text-decoration: none; }
+  .week-num { font-size: 28px; font-weight: 800; color: var(--teal); }
+  .week-theme { font-size: 14px; margin-top: 4px; color: var(--muted); }
+  .week-title { font-weight: 700; margin-top: 6px; font-size: 15px; }
+  .week-card.done { border-left: 4px solid var(--green); }
+  .week-card.current { border-left: 4px solid var(--orange); }
+  .week-card.future { opacity: 0.65; }
+  .sheet-section { margin-top: 24px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+  .sheet-section iframe { width: 100%; border: 0; border-radius: 4px; }
+  .progress-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; }
+  .progress-stat { padding: 8px 12px; border-radius: 6px; text-align: center; font-size: 13px; }
+  .progress-stat.completed { background: #d4edda; color: #155724; }
+  .progress-stat.in_progress { background: #fff3cd; color: #856404; }
+  .progress-stat.not_started { background: #f0f0f0; color: #666; }
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+  <div>
+    <p class="eyebrow">專題課程</p>
+    <h1 style="margin:0;">學習歷程</h1>
+  </div>
+  <span class="muted" style="font-size:14px;">驗車場智慧預約與流場管理系統</span>
+</div>
+
+<p class="muted" style="margin-bottom:16px;">
+  每週點擊對應週次查看學習單內容、任務清單與 AI 提示語範例。
+</p>
+
+{% set phases = [
+  ('發現', 1, 2), ('設計', 3, 4), ('前端', 5, 8),
+  ('後端', 9, 12), ('資料庫', 13, 16), ('完成', 17, 18), ('發表', 19, 20)
+] %}
+
+{% for phase_name, start, end in phases %}
+<div class="phase-label">{{ phase_name }}</div>
+<div class="week-grid">
+  {% for w in range(start, end + 1) %}
+  {% if w in weeks %}
+  <a href="/learning/week/{{ w }}" class="week-card">
+    <div class="week-num">{{ w }}</div>
+    <div class="week-theme">{{ weeks[w].theme }}</div>
+    <div class="week-title">{{ weeks[w].title }}</div>
+  </a>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endfor %}
+
+<div class="sheet-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <h2 style="margin:0;">學習進度總覽</h2>
+    <a href="/learning/progress" style="color:var(--teal);text-decoration:none;font-size:14px;">查看詳細進度 →</a>
+  </div>
+  <p style="margin-top:8px;font-size:14px;color:var(--muted);">各組學習進度摘要（教師可至管理後台更新）</p>
+  <div class="progress-summary">
+    {% for w in range(1, 21) %}
+    {% set stats = progress_stats.get(w, {'completed': 0, 'in_progress': 0, 'not_started': 0}) %}
+    <div class="progress-stat {% if stats.completed > 0 %}completed{% elif stats.in_progress > 0 %}in_progress{% else %}not_started{% endif %}">
+      <div style="font-weight:700;">W{{ w }}</div>
+      <div style="font-size:11px;margin-top:2px;">
+        {% if stats.completed > 0 %}✓ {{ stats.completed }}組已完成
+        {% elif stats.in_progress > 0 %}● {{ stats.in_progress }}組進行中
+        {% else %}尚未開始{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

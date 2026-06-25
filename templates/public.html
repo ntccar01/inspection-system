@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}公共看板 — 即時流量{% endblock %}
+{% block content %}
+<section style="text-align:center;padding:12px 0 8px;">
+  <p class="eyebrow">現場即時資訊</p>
+  <h1>今日各時段等待狀況</h1>
+  <p class="muted" style="margin-top:6px;">{{ today }}</p>
+</section>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:8px;">
+  {% for s in slots %}
+  <div class="card" style="text-align:center;padding:24px;">
+    <strong style="font-size:22px;display:block;">{{ s.label }}</strong>
+    <div style="margin:14px 0;height:20px;border-radius:999px;background:#e9eef2;overflow:hidden;">
+      <div style="height:100%;border-radius:999px;width:{{ s.pct }}%;
+        background:{% if s.status_tone == 'full' %}#b94e36{% elif s.status_tone == 'busy' %}#b7792c{% elif s.status_tone == 'normal' %}#1f6f78{% else %}#3d7d46{% endif %};">
+      </div>
+    </div>
+    <span class="badge {{ s.status_tone }}" style="font-size:16px;padding:6px 20px;">{{ s.status_label }}</span>
+    <p style="margin-top:10px;color:var(--muted);font-size:15px;">
+      {{ s.count }} 台預約 / 最多 {{ s.max }} 台
+    </p>
+  </div>
+  {% endfor %}
+</div>
+
+<section class="card" style="margin-top:20px;">
+  <h2>狀態說明</h2>
+  <div class="grid-2" style="margin-top:8px;">
+    <div><span class="badge open" style="margin-right:8px;">空閒</span> 此時段車輛較少，建議前往</div>
+    <div><span class="badge normal" style="margin-right:8px;">普通</span> 此時段尚可預約，可能需稍等</div>
+    <div><span class="badge busy" style="margin-right:8px;">忙碌</span> 此時段車輛較多，可能需等待</div>
+    <div><span class="badge full" style="margin-right:8px;">滿載</span> 此時段已滿，建議改選其他時段</div>
+  </div>
+</section>
+{% endblock %}

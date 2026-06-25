@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}學習進度 — 公開檢視{% endblock %}
+{% block content %}
+<style>
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+  .week-progress-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+  .week-progress-card h3 { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .week-num { font-size: 24px; font-weight: 800; color: var(--teal); }
+  .group-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .group-row:last-child { border-bottom: none; }
+  .group-name { font-weight: 600; }
+  .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.未開始 { background: #ccc; }
+  .status-dot.進行中 { background: #ffc107; }
+  .status-dot.已完成 { background: #28a745; }
+  .progress-bar { width: 60px; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; }
+  .progress-bar-fill.未開始 { width: 0; }
+  .progress-bar-fill.進行中 { width: 50%; background: #ffc107; }
+  .progress-bar-fill.已完成 { width: 100%; background: #28a745; }
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+  <div>
+    <p class="eyebrow">專題課程</p>
+    <h1 style="margin:0;">學習進度</h1>
+  </div>
+  <a href="/learning" class="btn" style="text-decoration:none;">回到學習歷程</a>
+</div>
+
+<p class="muted" style="margin-bottom:16px;">
+  各組學習進度一覽。狀態：未開始（灰色）→ 進行中（黃色）→ 已完成（綠色）。
+</p>
+
+<div class="progress-grid">
+  {% for w in range(1, 21) %}
+  <div class="week-progress-card">
+    <h3>
+      <span class="week-num">{{ w }}</span>
+      <span>{{ weeks[w].title }}</span>
+    </h3>
+    {% set groups_data = progress.get(w, []) %}
+    {% if groups_data %}
+      {% for item in groups_data %}
+      <div class="group-row">
+        <div>
+          <span class="status-dot {{ item.status }}"></span>
+          <span class="group-name">{{ item.group_name }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--muted);">{{ item.status }}</span>
+          <div class="progress-bar">
+            <div class="progress-bar-fill {{ item.status }}"></div>
+          </div>
+        </div>
+      </div>
+      {% if item.notes %}
+      <div style="font-size:12px;color:var(--muted);padding:4px 0 8px 16px;">📝 {{ item.notes }}</div>
+      {% endif %}
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--muted);font-size:13px;padding:8px 0;">尚未記錄</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

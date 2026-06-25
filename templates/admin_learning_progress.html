@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}學習進度管理{% endblock %}
+{% block content %}
+<style>
+  .progress-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .progress-table th, .progress-table td { padding: 10px 12px; border: 1px solid var(--line); text-align: center; }
+  .progress-table th { background: var(--panel); font-weight: 700; position: sticky; top: 0; }
+  .progress-table tr:hover { background: rgba(0,0,0,0.02); }
+  .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .status-未開始 { background: #f0f0f0; color: #666; }
+  .status-進行中 { background: #fff3cd; color: #856404; }
+  .status-已完成 { background: #d4edda; color: #155724; }
+  .edit-cell { position: relative; }
+  .edit-cell textarea { width: 100%; min-width: 120px; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: 13px; resize: vertical; }
+  .save-btn { background: var(--teal); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 4px; }
+  .save-btn:hover { opacity: 0.85; }
+  .week-phase { font-size: 12px; color: var(--muted); }
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+  <div>
+    <p class="eyebrow">管理後台</p>
+    <h1 style="margin:0;">學習進度管理</h1>
+  </div>
+  <a href="/learning/progress" class="btn" style="text-decoration:none;">公開檢視頁</a>
+</div>
+
+<p class="muted" style="margin-bottom:16px;">
+  點選狀態欄切換（未開始→進行中→已完成），備註欄可直接編輯後按儲存。
+</p>
+
+<div style="overflow-x:auto;">
+<table class="progress-table">
+  <thead>
+    <tr>
+      <th style="width:60px;">週次</th>
+      <th style="width:80px;">階段</th>
+      <th style="width:160px;">主題</th>
+      {% for g in groups %}
+      <th>{{ g }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for w in range(1, 21) %}
+    <tr>
+      <td><strong style="font-size:18px;color:var(--teal);">{{ w }}</strong></td>
+      <td class="week-phase">
+        {% if w <= 2 %}發現{% elif w <= 4 %}設計{% elif w <= 8 %}前端{% elif w <= 12 %}後端{% elif w <= 16 %}資料庫{% elif w <= 18 %}完成{% else %}發表{% endif %}
+      </td>
+      <td style="text-align:left;">{{ weeks[w].title }}</td>
+      {% for g in groups %}
+      {% set group_data = none %}
+      {% for item in progress.get(w, []) %}
+        {% if item.group_name == g %}
+          {% set group_data = item %}
+        {% endif %}
+      {% endfor %}
+      <td class="edit-cell" data-week="{{ w }}" data-group="{{ g }}">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span class="status-badge status-{{ group_data.status if group_data else '未開始' }}"
+                onclick="toggleStatus(this, {{ w }}, '{{ g }}')">
+            {{ group_data.status if group_data else '未開始' }}
+          </span>
+          <textarea placeholder="備註..." rows="2" onchange="saveNotes({{ w }}, '{{ g }}', this.value)">{{ group_data.notes if group_data else '' }}</textarea>
+        </div>
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<script>
+const statusOrder = ['未開始', '進行中', '已完成'];
+
+function toggleStatus(el, week, group) {
+  const current = el.textContent.trim();
+  const idx = statusOrder.indexOf(current);
+  const next = statusOrder[(idx + 1) % statusOrder.length];
+  el.className = 'status-badge status-' + next;
+  el.textContent = next;
+  updateProgress(week, group, next, '');
+}
+
+function saveNotes(week, group, notes) {
+  const cell = document.querySelector(`td[data-week="${week}"][data-group="${group}"]`);
+  const badge = cell.querySelector('.status-badge');
+  const status = badge.textContent.trim();
+  updateProgress(week, group, status, notes);
+}
+
+function updateProgress(week, group, status, notes) {
+  fetch('/api/learning-progress', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({week_number: week, group_name: group, status: status, notes: notes})
+  }).then(r => r.json()).then(d => {
+    if (d.message) {
+      const toast = document.createElement('div');
+      toast.textContent = '已儲存';
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--teal);color:white;padding:8px 16px;border-radius:8px;z-index:999;';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 1500);
+    }
+  });
+}
+</script>
+{% endblock %}

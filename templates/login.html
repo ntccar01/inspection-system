@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}管理登入{% endblock %}
+{% block content %}
+<section class="card" style="max-width:400px;margin:48px auto;text-align:center;">
+  <p class="eyebrow">管理端登入</p>
+  <h2 style="margin-top:4px;">廠內管理系統</h2>
+  <p class="muted" style="margin-top:8px;font-size:14px;">請輸入管理密碼以進入中控台與車籍管理</p>
+  <form method="POST" style="margin-top:20px;display:grid;gap:14px;">
+    <input name="password" type="password" required placeholder="請輸入管理密碼"
+           style="text-align:center;font-size:18px;letter-spacing:4px;">
+    {% if error %}
+    <div style="background:var(--soft-red);color:var(--red);padding:10px;border-radius:8px;font-weight:700;font-size:14px;">
+      {{ error }}
+    </div>
+    {% endif %}
+    <button class="btn btn-primary" type="submit" style="font-size:16px;">登入</button>
+  </form>
+  <a href="/" style="display:inline-block;margin-top:16px;font-size:14px;">返回車主首頁</a>
+</section>
+{% endblock %}

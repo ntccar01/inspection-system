@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}廠內中控台{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <div>
+    <p class="eyebrow">廠內中控台</p>
+    <h1 style="margin:0;">今日營運總覽</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="muted" style="font-size:14px;">{{ today }}</span>
+    <a href="/reserve" class="btn btn-orange btn-sm">新增預約</a>
+  </div>
+</div>
+
+<div class="grid-4" style="margin-bottom:18px;">
+  <div class="card" style="text-align:center;">
+    <span class="muted" style="font-size:13px;">本日預約</span>
+    <strong style="display:block;font-size:36px;color:var(--teal);" id="statTotal">{{ stats.total }}</strong>
+  </div>
+  <div class="card orange" style="text-align:center;">
+    <span class="muted" style="font-size:13px;">已到場 / 檢驗中</span>
+    <strong style="display:block;font-size:36px;color:var(--orange);">
+      <span id="statChecked">{{ stats.checked_in }}</span> / <span id="statInspecting">{{ stats.inspecting }}</span>
+    </strong>
+  </div>
+  <div class="card green" style="text-align:center;">
+    <span class="muted" style="font-size:13px;">已完成</span>
+    <strong style="display:block;font-size:36px;color:var(--green);" id="statDone">{{ stats.completed }}</strong>
+  </div>
+  <div class="card" style="text-align:center;">
+    <span class="muted" style="font-size:13px;">未到 / 取消</span>
+    <strong style="display:block;font-size:36px;color:var(--muted);" id="statNoShow">{{ stats.no_show }}</strong>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>各時段容量</h2>
+    <div style="display:grid;gap:10px;margin-top:8px;">
+      {% for s in slots %}
+      <div style="display:grid;grid-template-columns:minmax(90px,120px) 1fr 60px;gap:10px;align-items:center;">
+        <strong style="font-size:14px;">{{ s.label }}</strong>
+        <div style="height:16px;border-radius:999px;background:#e9eef2;overflow:hidden;">
+          <div style="height:100%;border-radius:999px;width:{{ s.pct }}%;
+            background:{% if s.status_tone == 'full' %}#b94e36{% elif s.status_tone == 'busy' %}#b7792c{% elif s.status_tone == 'normal' %}#1f6f78{% else %}#3d7d46{% endif %};">
+          </div>
+        </div>
+        <span class="badge {{ s.status_tone }}" style="font-size:12px;">{{ s.count }}/{{ s.max }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>快速搜尋車牌</h2>
+    <input id="quickSearch" placeholder="輸入車牌搜尋…" style="margin-top:8px;" oninput="filterTable(this.value)">
+    <div id="searchResult" style="margin-top:8px;font-size:14px;color:var(--muted);"></div>
+  </section>
+</div>
+
+<section class="card" style="margin-top:18px;">
+  <h2>今日預約列表</h2>
+  <div style="overflow-x:auto;margin-top:8px;">
+    <table id="reservationTable">
+      <thead>
+        <tr>
+          <th>車牌</th><th>車主</th><th>手機</th><th>時段</th><th>狀態</th><th>到場</th><th>完成</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservations %}
+        <tr data-id="{{ r.id }}">
+          <td><strong>{{ r.license_plate }}</strong></td>
+          <td>{{ r.owner_name }}</td>
+          <td>{{ r.phone }}</td>
+          <td>{{ r.time_slot }}</td>
+          <td><span class="badge {% if r.status == '已完成' %}open{% elif r.status == '檢驗中' %}busy{% elif r.status == '已報到' %}normal{% elif r.status == '未到' or r.status == '已取消' %}full{% else %}normal{% endif %}">{{ r.status }}</span></td>
+          <td>{{ r.check_in_time or '-' }}</td>
+          <td>{{ r.complete_time or '-' }}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              {% if r.status == '已預約' %}
+              <button class="btn btn-primary btn-sm" onclick="updateStatus({{ r.id }},'已報到',this)">報到</button>
+              <button class="btn btn-danger btn-sm" onclick="updateStatus({{ r.id }},'已取消',this)">取消</button>
+              {% elif r.status == '已報到' %}
+              <button class="btn btn-primary btn-sm" onclick="updateStatus({{ r.id }},'檢驗中',this)">開始檢驗</button>
+              <button class="btn btn-danger btn-sm" onclick="updateStatus({{ r.id }},'未到',this)">未到</button>
+              {% elif r.status == '檢驗中' %}
+              <button class="btn btn-primary btn-sm" onclick="updateStatus({{ r.id }},'已完成',this)">完成</button>
+              <button class="btn btn-outline btn-sm" onclick="updateStatus({{ r.id }},'未通過',this)">未通過</button>
+              {% elif r.status == '未通過' %}
+              <button class="btn btn-primary btn-sm" onclick="updateStatus({{ r.id }},'覆驗',this)">覆驗</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if not reservations %}
+    <p class="muted" style="text-align:center;padding:20px;">今日尚無預約資料</p>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+async function updateStatus(id, status, btn) {
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '處理中…';
+  try {
+    const res = await fetch(`/api/reservations/${id}/status`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({status: status}),
+    });
+    if (res.ok) {
+      location.reload();
+    } else {
+      const data = await res.json();
+      alert(data.error || '更新失敗');
+      btn.disabled = false; btn.textContent = original;
+    }
+  } catch(e) {
+    alert('系統錯誤');
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+function filterTable(keyword) {
+  const rows = document.querySelectorAll('#reservationTable tbody tr');
+  const el = document.getElementById('searchResult');
+  let count = 0;
+  rows.forEach(row => {
+    const match = row.cells[0].textContent.includes(keyword) || row.cells[1].textContent.includes(keyword) || row.cells[2].textContent.includes(keyword);
+    row.style.display = match || !keyword ? '' : 'none';
+    if (match || !keyword) count++;
+  });
+  el.textContent = keyword ? `找到 ${count} 筆符合資料` : '';
+}
+</script>
+{% endblock %}
