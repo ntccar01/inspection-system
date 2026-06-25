@@ -46,6 +46,10 @@
         <div>
           <span class="status-dot {{ item.status }}"></span>
           <span class="group-name">{{ item.group_name }}</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:4px;">
+            {% set done = task_counts.get((w, item.group_name), 0) %}
+            ({{ done }}任務✓)
+          </span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:12px;color:var(--muted);">{{ item.status }}</span>

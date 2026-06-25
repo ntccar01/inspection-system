@@ -93,6 +93,16 @@ def init_db():
             updated_at TEXT DEFAULT (datetime('now','localtime')),
             UNIQUE(week_number, group_name)
         );
+        CREATE TABLE IF NOT EXISTS learning_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            week_number INTEGER NOT NULL,
+            group_name TEXT NOT NULL,
+            task_type TEXT NOT NULL DEFAULT 'checklist',
+            task_index INTEGER NOT NULL,
+            is_completed INTEGER DEFAULT 0,
+            updated_at TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(week_number, group_name, task_type, task_index)
+        );
     ''')
 
     count = c.execute('SELECT COUNT(*) FROM time_slots').fetchone()[0]
@@ -278,6 +288,7 @@ def learning_week(week):
 def learning_progress():
     conn = get_db()
     rows = conn.execute('SELECT * FROM learning_progress ORDER BY week_number, group_name').fetchall()
+    task_rows = conn.execute('SELECT week_number, group_name, COUNT(*) as done FROM learning_tasks WHERE is_completed=1 AND task_type="checklist" GROUP BY week_number, group_name').fetchall()
     conn.close()
     progress = {}
     for row in rows:
@@ -285,7 +296,10 @@ def learning_progress():
         if w not in progress:
             progress[w] = []
         progress[w].append(dict(row))
-    return render_template('learning_progress.html', progress=progress, weeks=WEEKS)
+    task_counts = {}
+    for r in task_rows:
+        task_counts[(r['week_number'], r['group_name'])] = r['done']
+    return render_template('learning_progress.html', progress=progress, weeks=WEEKS, task_counts=task_counts, total_tasks=5)
 
 
 @app.route('/admin/learning-progress')
@@ -494,8 +508,42 @@ def api_create_reservation():
     )
     conn.commit()
     conn.close()
-    return jsonify({'id': c.lastrowid, 'message': '預約成功'})
+    return jsonify({'message': '更新成功'})
 
+
+@app.route('/api/learning-tasks', methods=['GET'])
+def api_get_tasks():
+    week = request.args.get('week', type=int)
+    group = request.args.get('group', '')
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT task_index, is_completed FROM learning_tasks WHERE week_number=? AND group_name=? AND task_type="checklist"',
+        (week, group)
+    ).fetchall()
+    conn.close()
+    tasks = {r['task_index']: bool(r['is_completed']) for r in rows}
+    return jsonify(tasks)
+
+
+@app.route('/api/learning-tasks', methods=['POST'])
+def api_save_task():
+    data = request.get_json()
+    week = data.get('week')
+    group = data.get('group')
+    task_index = data.get('task_index')
+    is_completed = 1 if data.get('is_completed') else 0
+    if not all([week, group, task_index is not None]):
+        return jsonify({'error': '缺少必要欄位'}), 400
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO learning_tasks (week_number, group_name, task_type, task_index, is_completed)
+        VALUES (?, ?, 'checklist', ?, ?)
+        ON CONFLICT(week_number, group_name, task_type, task_index)
+        DO UPDATE SET is_completed=?, updated_at=datetime('now','localtime')
+    ''', (week, group, task_index, is_completed, is_completed))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': '已儲存'})
 
 @app.route('/api/reservations/<int:rid>/status', methods=['PUT'])
 @admin_required
